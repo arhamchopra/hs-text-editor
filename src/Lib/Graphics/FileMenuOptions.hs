@@ -32,7 +32,7 @@ runFileChooseDialog title acceptStr cancelStr overwriteConf = do
     widgetDestroy fchdal
     return (response, filename)
 
-fileWriteData = \text -> do
+fileWriteData text path = do
     (response, filename)<- runFileChooseDialog "Save" "Save" "Cancel" True
     case response of
       ResponseCancel -> putStrLn "You cancelled..."
@@ -42,7 +42,7 @@ fileWriteData = \text -> do
       ResponseUser 100 -> putStrLn "You pressed the backup button"
       ResponseDeleteEvent -> putStrLn "You closed the dialog window..."
 
-fileReadData :: IO (Maybe String)
+fileReadData :: IO (Maybe String, Maybe String)
 fileReadData = do
     (response, filename)<- runFileChooseDialog "Open" "Open" "Cancel" False
     case response of
