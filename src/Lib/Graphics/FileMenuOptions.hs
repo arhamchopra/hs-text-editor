@@ -1,9 +1,10 @@
 module Lib.Graphics.FileMenuOptions (
     fileSave,
-    fileOpen,
     extractAllDataTextView,
     runSimpleDialog,
-    getTextViewFromNotebook
+    getTextViewFromNotebook,
+    fileReadData,
+    setDataTextView
                                     ) where
 
 import Graphics.UI.Gtk
@@ -87,12 +88,11 @@ fileReadData = do
                                 return (Nothing, Nothing)
 
 {- Main functions -}
-
-fileOpen textview = do (path, text) <- fileReadData
-                       case text of
-                            Nothing -> setDataTextView textview ""
-                            Just str -> setDataTextView textview str
-                       return path
+{- fileOpen textview = do (path, text) <- fileReadData -}
+                       {- case text of -}
+                       {-      Nothing -> setDataTextView textview "" -}
+                       {-      Just str -> setDataTextView textview str -}
+                       {- return path -}
 
 fileSave :: String -> Maybe String -> IO (Maybe String)
 fileSave textData path = do

@@ -7,6 +7,9 @@ module Lib.Graphics.Notebook (
   switchPageHandler,
   switchPrevPageHandler,
   savePageHandler,
+  saveAsPageHandler,
+  openPageHandler,
+  searchHandler
   ) where
 
 import Control.Monad
@@ -70,7 +73,36 @@ addEventHandlers window notebook = do
     {- Close a tab when user press Ctrl+w -}
     [Control] <- eventModifier
     "o" <- eventKeyName
-    liftIO $ savePageHandler notebook -- Show window.
+    liftIO $ openPageHandler notebook -- Show window.
+
+openPageHandler :: Notebook -> IO ()
+openPageHandler notebook = do
+  (path, text) <- fileReadData
+  case (text,path) of
+    (Just textData, Just textPath) -> do
+      maybeCurMenuLabel <- readMenuLabel notebook
+      case maybeCurMenuLabel of 
+        (Just "") -> do updateCurrentPage notebook textPath textPath textData
+                        return ()
+        s -> do pageIndex <- createPageNew notebook textPath textPath textData
+                return ()
+    (_, _) -> return ()
+
+saveAsPageHandler :: Notebook -> IO ()
+saveAsPageHandler notebook = do
+  maybePath <- readMenuLabel notebook
+  case maybePath of
+    Nothing -> return ()
+    p@(Just justPath) -> do
+      pageIndex <- get notebook notebookCurrentPage
+      textView <- getTextViewFromNotebook notebook pageIndex
+      textData <- extractAllDataTextView textView
+      path <- fileSave textData (Just "")
+      case path of 
+        Nothing -> return ()
+        (Just newPath) -> do
+          writeMenuLabel notebook newPath
+          writeTabLabel notebook newPath
 
 
 savePageHandler :: Notebook -> IO ()
@@ -120,6 +152,20 @@ addFindTag textView = do
 
 insertPageHandler :: Notebook -> IO ()
 insertPageHandler notebook = do
+  pageIndex <- createPageNew notebook "Untitled.txt" "" ""  
+  return ()
+
+updateCurrentPage :: Notebook -> String -> String -> String -> IO ()
+updateCurrentPage notebook tabLabel menuLabel textData = do
+  writeTabLabel notebook tabLabel
+  writeMenuLabel notebook menuLabel
+
+  pageIndex <- get notebook notebookCurrentPage
+  textView <- getTextViewFromNotebook notebook pageIndex
+  setDataTextView textView textData
+
+createPageNew :: Notebook -> String -> String -> String -> IO Int
+createPageNew notebook tabLabel menuLabel textData = do
   -- Create Scrolling View
   adjust1 <- adjustmentNew 0 0 100 10 30 300
   adjust2 <- adjustmentNew 0 0 100 10 30 300
@@ -128,17 +174,16 @@ insertPageHandler notebook = do
   -- Create text view.
   textView <- textViewNew
   addFindTag textView
-  widgetShowAll textView -- must show before add notebook,
-                        -- otherwise notebook won't display child widget 
-                        -- even have add in notebook.
+
+  setDataTextView textView textData
 
   -- Add textview to the scrolling window to allow scroll
   containerAdd scroll_window textView
   widgetShowAll scroll_window
 
   -- Create notebook tab.
-  tab <- notebookTabNew (Just "Untitled.txt") Nothing
-  menuLabel <- labelNew (Nothing :: Maybe String)
+  tab <- notebookTabNew (Just tabLabel) Nothing
+  menuLabel <- labelNew (Just menuLabel)
 
   -- Add widgets in notebook.
   pageIndex <- notebookAppendPageMenu notebook scroll_window (ntBox tab) menuLabel
@@ -156,9 +201,8 @@ insertPageHandler notebook = do
   ntCloseButton tab `onToolButtonClicked` do
     index <- notebookPageNum notebook scroll_window
     index ?>= \i -> notebookRemovePage notebook i
-  
-  return ()
 
+  return pageIndex
 
 -- | Create notebook tab.
 notebookTabNew :: Maybe String -> Maybe Int -> IO NotebookTab

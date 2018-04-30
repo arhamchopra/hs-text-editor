@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Lib.Graphics.Views where
 
 import Graphics.UI.Gtk
@@ -19,9 +18,7 @@ uiDef =
     \      <placeholder name=\"FileMenuAdditions\" />\
     \    </menu>\
     \    <menu name=\"Edit\" action=\"EditAction\">\
-    \      <menuitem name=\"Cut\" action=\"CutAction\"/>\
-    \      <menuitem name=\"Copy\" action=\"CopyAction\"/>\
-    \      <menuitem name=\"Paste\" action=\"PasteAction\"/>\
+    \      <menuitem name=\"Search\" action=\"SearchAction\"/>\
     \    </menu>\
     \  </menubar>\
     \</ui>"
@@ -55,7 +52,7 @@ loadWindow = do
     openAct <- actionNew "OpenAction" "Open"
             (Just "Open an existing spreadsheet.")
             (Just stockOpen)
-    {- openAct `onActionActivate` (fileOpen ) -}
+    openAct `onActionActivate` (openPageHandler editorPane)
 
     saveAct <- actionNew "SaveAction" "Save"
             (Just "Save the current spreadsheet.")
@@ -65,7 +62,7 @@ loadWindow = do
     saveAsAct <- actionNew "SaveAsAction" "SaveAs"
             (Just "Save spreadsheet under new name.")
             (Just stockSaveAs)
-    saveAsAct `onActionActivate` (savePageHandler editorPane)
+    saveAsAct `onActionActivate` (saveAsPageHandler editorPane)
 
     exitAct <- actionNew "ExitAction" "Exit Tab"
             (Just "Exit this application.")
@@ -80,23 +77,15 @@ loadWindow = do
                     widgetDestroy rootWindow
                     mainQuit
     exitAllAct `onActionActivate` action
-    cutAct <- actionNew "CutAction" "Cut"
-            (Just "Cut out the current selection.")
-            (Just stockCut)
-    cutAct `onActionActivate` putStrLn "Cut activated."
-    copyAct <- actionNew "CopyAction" "Copy"
-            (Just "Copy the current selection.")
-            (Just stockCopy)
-    copyAct `onActionActivate` putStrLn "Copy activated."
-    pasteAct <- actionNew "PasteAction" "Paste"
-            (Just "Paste the current selection.")
-            (Just stockPaste)
-    pasteAct `onActionActivate` putStrLn "Paste activated."
+    searchAct <- actionNew "SearchAction" "Search"
+            (Just "Search a word in the current tab.")
+            (Just stockFind)
+    searchAct `onActionActivate` (searchHandler editorPane)
 
     standardGroup <- actionGroupNew "standard"
     mapM_ (actionGroupAddAction standardGroup) [fileAct, editAct]
     mapM_ (actionGroupAddAction standardGroup)
-        [newAct, openAct, saveAct, saveAsAct, exitAct, exitAllAct, cutAct, copyAct, pasteAct]
+        [newAct, openAct, saveAct, saveAsAct, exitAct, exitAllAct, searchAct]
 
     ui <- uiManagerNew
     mid <- uiManagerAddUiFromString ui uiDef
