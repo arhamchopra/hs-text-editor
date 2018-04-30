@@ -404,7 +404,7 @@ writeTabLabel :: Notebook -> String -> IO ()
 writeTabLabel notebook newLabel = do
   pageIndex <- get notebook notebookCurrentPage
   (Just pagewidget) <- notebookGetNthPage notebook pageIndex
-  newTab <- notebookTabNew (Just newLabel) Nothing
+  newTab <- notebookTabNew (Just (getFileNamePath newLabel)) Nothing
   notebookSetTabLabel notebook pagewidget (ntBox newTab)
 
 readTabLabel notebook = return (Just "Untitled.txt")

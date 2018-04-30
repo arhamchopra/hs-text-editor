@@ -2,6 +2,7 @@
 module Lib.Graphics.Utilities (
   fileSave,
   fileRead,
+  getFileNamePath,
   extractAllDataTextView,
   runSimpleDialog,
   getTextViewFromNotebook,
@@ -10,6 +11,7 @@ module Lib.Graphics.Utilities (
 import Graphics.UI.Gtk
 import Control.Monad
 import Control.Monad.IO.Class
+import Data.List.Split
 
 
 ------------------------- Set/Get data to/from widgets ----------------------
@@ -112,3 +114,5 @@ fileSave textData path = do
       writeFile oldPath textData
       return Nothing
 -----------------------------------------------------------------------------------
+
+getFileNamePath filepath = last (splitOn "/" filepath)
