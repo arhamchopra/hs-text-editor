@@ -9,7 +9,8 @@ module Lib.Graphics.Notebook (
   savePageHandler,
   saveAsPageHandler,
   openPageHandler,
-  searchHandler
+  searchHandler,
+  tabPageHandler
   ) where
 
 import Control.Monad
@@ -17,7 +18,7 @@ import Control.Monad.IO.Class
 import Data.Maybe
 import Data.IORef
 import Graphics.UI.Gtk
-import Lib.Graphics.FileMenuOptions
+import Lib.Graphics.Utilities
 
 data NotebookTab =
     NotebookTab {ntBox          :: HBox
@@ -75,9 +76,13 @@ addEventHandlers window notebook = do
     "o" <- eventKeyName
     liftIO $ openPageHandler notebook -- Show window.
 
+tabPageHandler :: Notebook -> Int -> IO ()
+tabPageHandler notebook pageIndex = do
+  notebookSetCurrentPage notebook pageIndex
+
 openPageHandler :: Notebook -> IO ()
 openPageHandler notebook = do
-  (path, text) <- fileReadData
+  (path, text) <- fileRead
   case (text,path) of
     (Just textData, Just textPath) -> do
       maybeCurMenuLabel <- readMenuLabel notebook

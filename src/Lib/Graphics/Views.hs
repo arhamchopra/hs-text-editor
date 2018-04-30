@@ -1,8 +1,9 @@
 module Lib.Graphics.Views where
 
 import Graphics.UI.Gtk
-import Lib.Graphics.FileMenuOptions
+import Lib.Graphics.Utilities
 import Lib.Graphics.Notebook
+import Lib.Graphics.Commands
 
 uiDef =
     "<ui>\
@@ -30,13 +31,14 @@ loadWindow = do
 
     rootWindow <- windowNew
     rootWindow `onDestroy` mainQuit
-    {- rootWindow `onSizeRequest` return (Requisition 200 100) -}
 
     windowSetDefaultSize rootWindow 800 600
     windowSetPosition rootWindow WinPosCenter
 
     editorPane <- createNotebook
     addEventHandlers rootWindow editorPane
+
+    commandPane <- createCommandView rootWindow editorPane
 
     -- Create the menus
     fileAct <- actionNew "FileAction" "File" Nothing Nothing
@@ -97,6 +99,7 @@ loadWindow = do
     set vBox [boxHomogeneous := False]
     boxPackStart vBox menuBar PackNatural 0
     boxPackStart vBox editorPane PackGrow 1
+    boxPackStart vBox commandPane PackNatural 0
 
     containerAdd rootWindow vBox
     widgetShowAll rootWindow

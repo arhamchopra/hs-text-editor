@@ -23,4 +23,6 @@ executable hs-text-editor
                        gtk,
                        gio,
                        transformers,
-                       glib
+                       glib,
+                       hint,
+                       split
