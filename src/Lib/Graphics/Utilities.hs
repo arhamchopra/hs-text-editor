@@ -13,6 +13,7 @@ import Control.Monad.IO.Class
 
 
 ------------------------- Set/Get data to/from widgets ----------------------
+extractDataOffsetsTextView :: TextView -> Int -> Int -> IO String
 extractDataOffsetsTextView textview offset_start offset_end = do
   textbuffer <- textViewGetBuffer textview
   startIter <- textBufferGetIterAtOffset textbuffer offset_start
@@ -20,6 +21,7 @@ extractDataOffsetsTextView textview offset_start offset_end = do
   textData <- textBufferGetText textbuffer startIter endIter True
   return textData
 
+extractAllDataTextView :: TextView -> IO String
 extractAllDataTextView textview = extractDataOffsetsTextView textview 0 (-1)
 
 setDataTextView textview text = do

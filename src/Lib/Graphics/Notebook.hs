@@ -10,7 +10,8 @@ module Lib.Graphics.Notebook (
   saveAsPageHandler,
   openPageHandler,
   searchHandler,
-  tabPageHandler
+  tabPageHandler,
+  splitHandler
   ) where
 
 import Control.Monad
@@ -75,6 +76,70 @@ addEventHandlers window notebook = do
     [Control] <- eventModifier
     "o" <- eventKeyName
     liftIO $ openPageHandler notebook -- Show window.
+
+splitHandler :: Notebook -> IO ()
+splitHandler notebook = do
+  pageIndex <- get notebook notebookCurrentPage
+  textView <- getTextViewFromNotebook notebook pageIndex
+  textData <- extractAllDataTextView textView
+  (Just menuLabel) <- readMenuLabel notebook
+  (Just tabLabel) <- readTabLabel notebook
+
+  notebookRemovePage notebook pageIndex
+
+  -- Create Scrolling View
+  adjust1 <- adjustmentNew 0 0 100 10 30 300
+  adjust2 <- adjustmentNew 0 0 100 10 30 300
+  scroll_window1 <- scrolledWindowNew (Just adjust1) (Just adjust2)
+
+  adjust3 <- adjustmentNew 0 0 100 10 30 300
+  adjust4 <- adjustmentNew 0 0 100 10 30 300
+  scroll_window2 <- scrolledWindowNew (Just adjust3) (Just adjust4)
+
+  -- Create text view.
+  textView1 <- textViewNew
+  addFindTag textView1
+
+  textView2 <- textViewNew
+  addFindTag textView2
+
+  setDataTextView textView1 textData
+  setDataTextView textView2 textData
+
+  -- Add textview to the scrolling window to allow scroll
+  containerAdd scroll_window1 textView1
+  widgetShowAll scroll_window1
+  containerAdd scroll_window2 textView2
+  widgetShowAll scroll_window2
+
+  hBox <- hBoxNew False 0
+  set hBox [boxHomogeneous := True]
+  boxPackStart hBox scroll_window1 PackGrow 5
+  boxPackStart hBox scroll_window2 PackGrow 5
+  widgetShowAll hBox
+
+  -- Create notebook tab.
+  tab <- notebookTabNew (Just tabLabel) Nothing
+  menuLabel <- labelNew (Just menuLabel)
+
+  -- Add widgets in notebook.
+  pageIndex <- notebookAppendPageMenu notebook hBox (ntBox tab) menuLabel
+
+  -- Move to the new page
+  notebookSetCurrentPage notebook pageIndex
+
+  -- Start spinner animation when create tab.
+  {- notebookTabStart tab -}
+
+  -- Stop spinner animation after finish load.
+  {- timeoutAdd (notebookTabStop tab >> return False) 5000 -}
+
+  -- Close tab when click button.
+  ntCloseButton tab `onToolButtonClicked` do
+    index <- notebookPageNum notebook hBox
+    index ?>= \i -> notebookRemovePage notebook i
+  return ()
+
 
 tabPageHandler :: Notebook -> Int -> IO ()
 tabPageHandler notebook pageIndex = do
@@ -341,3 +406,5 @@ writeTabLabel notebook newLabel = do
   (Just pagewidget) <- notebookGetNthPage notebook pageIndex
   newTab <- notebookTabNew (Just newLabel) Nothing
   notebookSetTabLabel notebook pagewidget (ntBox newTab)
+
+readTabLabel notebook = return (Just "Untitled.txt")

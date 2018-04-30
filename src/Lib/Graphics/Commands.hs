@@ -13,7 +13,7 @@ import Lib.Graphics.Notebook
 import Language.Haskell.Interpreter
 import Data.List.Split
 
-editorCommandsList=["new", "open", "search", "close", "closeAll", "save", "saveAs", "tab"]
+editorCommandsList=["new", "open", "search", "close", "closeAll", "save", "saveAs", "tab", "split"]
 
 createCommandView rootWindow editorPane = do
   commandView <- textViewNew
@@ -58,6 +58,7 @@ runSystemCommand command editorPane = case commandType of
                                         "closeAll" -> closePageHandler editorPane
                                         "save" -> savePageHandler editorPane
                                         "saveAs" -> saveAsPageHandler editorPane
+                                        "split" -> splitHandler editorPane
                                         "tab" -> tabPageHandler editorPane ((read commandArg)::Int)
                                       where commandType = head (splitOn " " command)
                                             commandArg = head ( tail (splitOn " " command))
