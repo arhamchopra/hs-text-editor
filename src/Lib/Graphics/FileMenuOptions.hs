@@ -1,6 +1,9 @@
 module Lib.Graphics.FileMenuOptions (
     fileSave,
-    fileOpen
+    fileOpen,
+    extractAllDataTextView,
+    runSimpleDialog,
+    getTextViewFromNotebook
                                     ) where
 
 import Graphics.UI.Gtk
@@ -18,6 +21,28 @@ extractAllDataTextView textview = extractDataOffsetsTextView textview 0 (-1)
 setDataTextView textview text = do
     textbuffer <- textViewGetBuffer textview
     textBufferSetText textbuffer text
+
+getTextViewFromNotebook notebook pageIndex = do
+  (Just widget) <- notebookGetNthPage notebook pageIndex
+  childWidgets <- containerGetChildren (castToContainer widget)
+  return (castToTextView (head childWidgets))
+
+runSimpleDialog acceptStr cancelStr = do
+  dialog <- dialogNew
+  dialogAddButton dialog acceptStr ResponseAccept
+  dialogAddButton dialog cancelStr ResponseCancel
+
+  getText <- textViewNew
+
+  vbox <- dialogGetUpper dialog
+  boxPackStart vbox getText PackNatural 10
+
+  widgetShowAll dialog
+  response <- dialogRun dialog
+  text <- extractAllDataTextView getText
+  widgetDestroy dialog
+
+  return (response, text)
 
 runFileChooseDialog title acceptStr cancelStr overwriteConf = do
     fchdal <- fileChooserDialogNew (Just title) Nothing

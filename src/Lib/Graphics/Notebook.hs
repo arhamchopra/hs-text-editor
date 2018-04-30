@@ -5,7 +5,9 @@ module Lib.Graphics.Notebook (
   insertPageHandler,
   closePageHandler,
   switchPageHandler,
-  switchPrevPageHandler
+  switchPrevPageHandler,
+  match,
+  searchPattern
   ) where
 
 import Control.Monad
@@ -13,6 +15,7 @@ import Control.Monad.IO.Class
 import Data.Maybe
 import Data.IORef
 import Graphics.UI.Gtk
+import Lib.Graphics.FileMenuOptions
 
 data NotebookTab =
     NotebookTab {ntBox          :: HBox
@@ -34,7 +37,7 @@ addEventHandlers window notebook = do
   window `on` keyPressEvent $ tryEvent $ do
     [Control] <- eventModifier
     "n" <- eventKeyName
-    liftIO $ insertPageHandler notebook  -- Show window.
+    liftIO $ insertPageHandler window notebook  -- Show window.
 
   window `on` keyPressEvent $ tryEvent $ do
     -- Close a tab when user press Ctrl+w
@@ -54,6 +57,11 @@ addEventHandlers window notebook = do
     "Tab" <- eventKeyName
     liftIO $ switchPrevPageHandler notebook  -- Show window.
 
+  window `on` keyPressEvent $ tryEvent $ do
+    [Control] <- eventModifier
+    "f" <- eventKeyName
+    liftIO $ searchHandler notebook
+
   {- window `on` keyPressEvent $ tryEvent $ do -}
     -- Close a tab when user press Ctrl+w
     {- [Control] <- eventModifier -}
@@ -62,6 +70,16 @@ addEventHandlers window notebook = do
 
 {- savePageHandler :: Notebook -> IO () -}
 {- savePageHandler notebook =  -}
+
+searchHandler :: Notebook -> IO ()
+searchHandler notebook = do
+  pageIndex <- get notebook notebookCurrentPage
+  textView <- getTextViewFromNotebook notebook pageIndex
+  (response, query) <- runSimpleDialog ("Search"::String) ("Cancel"::String)
+  case response of
+      ResponseCancel -> putStrLn "You Cancelled"
+      ResponseAccept -> do
+          modifySearchText textView query
 
 switchPrevPageHandler :: Notebook -> IO ()
 switchPrevPageHandler notebook = notebookPrevPage notebook
@@ -74,9 +92,16 @@ closePageHandler notebook = do
   pageIndex <- get notebook notebookCurrentPage
   (Just pageIndex) ?>= \i -> notebookRemovePage notebook i
 
+addFindTag textView = do
+            textBuf <- textViewGetBuffer textView
+            tagTable <- textBufferGetTagTable textBuf --(Just "hello")
+            tag <- textTagNew (Just "find")
+            textTagTableAdd tagTable tag
+            --set textBuf [textBufferTagTable := tagTable]
+            set tag [textTagBackground := ("Yellow" :: String)]
 
-insertPageHandler :: Notebook -> IO ()
-insertPageHandler notebook = do
+insertPageHandler :: Window -> Notebook -> IO ()
+insertPageHandler window notebook = do
   -- Create Scrolling View
   adjust1 <- adjustmentNew 0 0 100 10 30 300
   adjust2 <- adjustmentNew 0 0 100 10 30 300
@@ -84,6 +109,7 @@ insertPageHandler notebook = do
 
   -- Create text view.
   textView <- textViewNew
+  addFindTag textView
   widgetShowAll textView -- must show before add notebook,
                         -- otherwise notebook won't display child widget 
                         -- even have add in notebook.
@@ -112,7 +138,7 @@ insertPageHandler notebook = do
   ntCloseButton tab `onToolButtonClicked` do
     index <- notebookPageNum notebook scroll_window
     index ?>= \i -> notebookRemovePage notebook i
-
+  
   return ()
 
 
@@ -124,7 +150,7 @@ notebookTabNew name size = do
   box <- hBoxNew False 0
   spinner <- spinnerNew
   label <- labelNew name
-  image <- imageNewFromIcon "text-x-component" iconSize
+  image <- imageNewFromIcon "go-first" iconSize
   closeButton <- toolButtonNew (Just image) (Nothing :: Maybe String)
 
   -- Show.
@@ -186,3 +212,38 @@ containerTryRemove parent widget = do
 -- | Maybe.
 (?>=) :: Monad m => Maybe a -> (a -> m ()) -> m () 
 m ?>= f = maybe (return ()) f m
+
+---------Search Utility Functions -------------
+modifySearchText textView pat = do
+    textBuf <- textViewGetBuffer textView
+    startIter <- textBufferGetIterAtOffset textBuf 0
+    endIter <- textBufferGetIterAtOffset textBuf (-1)
+    textBufferRemoveTagByName textBuf "find" startIter endIter
+    text <- extractAllDataTextView textView
+    changeSearchText textView (searchPattern text pat 0) (length pat)
+
+match :: String -> String -> Bool
+match text [] = True
+match [] pat = False
+match (c:text) (p:pat) | c==p = match text pat
+                       | otherwise = False
+
+searchPattern :: String -> String -> Int -> [Int]
+searchPattern "" _ _ = []
+searchPattern (c:text) pat pos = case match (c:text) pat of
+                                    True -> (pos:rest)
+                                    False -> rest
+                                where rest = searchPattern text pat (pos+1)
+
+changeSearchText textView [] l = return ()
+changeSearchText textView (pos:poses) l = do 
+        changeText textView pos (pos+l)
+        changeSearchText textView poses l
+
+changeText textView pos1 pos2 = do
+    textBuf <- textViewGetBuffer textView
+    startIter <- textBufferGetIterAtOffset textBuf pos1
+    endIter <- textBufferGetIterAtOffset textBuf pos2
+    textBufferApplyTagByName textBuf "find" startIter endIter
+----------------------------------------------------------
+

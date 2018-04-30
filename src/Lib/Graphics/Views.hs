@@ -50,7 +50,7 @@ loadWindow = do
             (Just "Clear the spreadsheet area.")
             (Just stockNew)
     newAct `onActionActivate` putStrLn "New activated."
-    newAct `onActionActivate` (insertPageHandler editorPane)
+    newAct `onActionActivate` (insertPageHandler rootWindow editorPane)
 
     openAct <- actionNew "OpenAction" "Open"
             (Just "Open an existing spreadsheet.")
