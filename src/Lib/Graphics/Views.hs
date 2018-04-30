@@ -50,7 +50,7 @@ loadWindow = do
             (Just "Clear the spreadsheet area.")
             (Just stockNew)
     newAct `onActionActivate` putStrLn "New activated."
-    newAct `onActionActivate` (insertPageHandler rootWindow editorPane)
+    newAct `onActionActivate` (insertPageHandler editorPane)
 
     openAct <- actionNew "OpenAction" "Open"
             (Just "Open an existing spreadsheet.")
@@ -60,12 +60,12 @@ loadWindow = do
     saveAct <- actionNew "SaveAction" "Save"
             (Just "Save the current spreadsheet.")
             (Just stockSave)
-    {- saveAct `onActionActivate` (fileSave edit path) -}
+    saveAct `onActionActivate` (savePageHandler editorPane)
 
     saveAsAct <- actionNew "SaveAsAction" "SaveAs"
             (Just "Save spreadsheet under new name.")
             (Just stockSaveAs)
-    {- saveAsAct `onActionActivate` (fileSave edit Nothing) -}
+    saveAsAct `onActionActivate` (savePageHandler editorPane)
 
     exitAct <- actionNew "ExitAction" "Exit Tab"
             (Just "Exit this application.")
@@ -97,9 +97,6 @@ loadWindow = do
     mapM_ (actionGroupAddAction standardGroup) [fileAct, editAct]
     mapM_ (actionGroupAddAction standardGroup)
         [newAct, openAct, saveAct, saveAsAct, exitAct, exitAllAct, cutAct, copyAct, pasteAct]
-
-    {- mapM_ (\act -> actionGroupAddActionWithAccel standardGroup act Nothing) -}
-    {-     [newAct, openAct, saveAct, saveAsAct, exitAct, cutAct, copyAct, pasteAct] -}
 
     ui <- uiManagerNew
     mid <- uiManagerAddUiFromString ui uiDef

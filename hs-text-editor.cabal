@@ -22,4 +22,5 @@ executable hs-text-editor
                        gtk2hs-buildtools,
                        gtk,
                        gio,
-                       transformers
+                       transformers,
+                       glib

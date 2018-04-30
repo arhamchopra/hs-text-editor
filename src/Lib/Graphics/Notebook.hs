@@ -6,8 +6,7 @@ module Lib.Graphics.Notebook (
   closePageHandler,
   switchPageHandler,
   switchPrevPageHandler,
-  match,
-  searchPattern
+  savePageHandler,
   ) where
 
 import Control.Monad
@@ -22,8 +21,7 @@ data NotebookTab =
                 ,ntSpinner      :: Spinner      {- Not needed -}
                 ,ntLabel        :: Label
                 ,ntCloseButton  :: ToolButton
-                ,ntSize         :: Int
-                ,filePath       :: Maybe (IORef [Char])}
+                ,ntSize         :: Int}
 
 -- | Main
 createNotebook :: IO Notebook
@@ -37,7 +35,7 @@ addEventHandlers window notebook = do
   window `on` keyPressEvent $ tryEvent $ do
     [Control] <- eventModifier
     "n" <- eventKeyName
-    liftIO $ insertPageHandler window notebook  -- Show window.
+    liftIO $ insertPageHandler notebook  -- Show window.
 
   window `on` keyPressEvent $ tryEvent $ do
     -- Close a tab when user press Ctrl+w
@@ -62,14 +60,34 @@ addEventHandlers window notebook = do
     "f" <- eventKeyName
     liftIO $ searchHandler notebook
 
-  {- window `on` keyPressEvent $ tryEvent $ do -}
-    -- Close a tab when user press Ctrl+w
-    {- [Control] <- eventModifier -}
-    {- "s" <- eventKeyName -}
-    {- liftIO $ savePageHandler notebook  -- Show window. -}
+  window `on` keyPressEvent $ tryEvent $ do
+    {- Close a tab when user press Ctrl+w -}
+    [Control] <- eventModifier
+    "s" <- eventKeyName
+    liftIO $ savePageHandler notebook -- Show window.
 
-{- savePageHandler :: Notebook -> IO () -}
-{- savePageHandler notebook =  -}
+  window `on` keyPressEvent $ tryEvent $ do
+    {- Close a tab when user press Ctrl+w -}
+    [Control] <- eventModifier
+    "o" <- eventKeyName
+    liftIO $ savePageHandler notebook -- Show window.
+
+
+savePageHandler :: Notebook -> IO ()
+savePageHandler notebook = do
+  maybePath <- readMenuLabel notebook
+  case maybePath of
+    Nothing -> return ()
+    p@(Just justPath) -> do
+      pageIndex <- get notebook notebookCurrentPage
+      textView <- getTextViewFromNotebook notebook pageIndex
+      textData <- extractAllDataTextView textView
+      path <- fileSave textData p
+      case path of 
+        Nothing -> return ()
+        (Just newPath) -> do
+          writeMenuLabel notebook newPath
+          writeTabLabel notebook newPath
 
 searchHandler :: Notebook -> IO ()
 searchHandler notebook = do
@@ -100,8 +118,8 @@ addFindTag textView = do
             --set textBuf [textBufferTagTable := tagTable]
             set tag [textTagBackground := ("Yellow" :: String)]
 
-insertPageHandler :: Window -> Notebook -> IO ()
-insertPageHandler window notebook = do
+insertPageHandler :: Notebook -> IO ()
+insertPageHandler notebook = do
   -- Create Scrolling View
   adjust1 <- adjustmentNew 0 0 100 10 30 300
   adjust2 <- adjustmentNew 0 0 100 10 30 300
@@ -158,7 +176,7 @@ notebookTabNew name size = do
   boxPackStart box closeButton PackNatural 0
   widgetShowAll box
 
-  return $ NotebookTab box spinner label closeButton iconSize Nothing
+  return $ NotebookTab box spinner label closeButton iconSize
 
 -- | Set tab name.
 notebookTabSetName :: NotebookTab -> String -> IO ()
@@ -247,3 +265,30 @@ changeText textView pos1 pos2 = do
     textBufferApplyTagByName textBuf "find" startIter endIter
 ----------------------------------------------------------
 
+---------------------Menu Label Utility Functions----------------------------
+
+readMenuLabel:: Notebook -> IO (Maybe String)
+readMenuLabel notebook = do
+  pageIndex <- get notebook notebookCurrentPage
+  pagewidget <- notebookGetNthPage notebook pageIndex
+  case pagewidget of
+    Nothing -> return Nothing
+    Just pagewidget -> do
+      text <- notebookGetMenuLabelText notebook pagewidget
+      return text
+
+writeMenuLabel :: Notebook -> String -> IO ()
+writeMenuLabel notebook newLabel = do
+  pageIndex <- get notebook notebookCurrentPage
+  (Just pagewidget) <- notebookGetNthPage notebook pageIndex
+  notebookSetMenuLabelText notebook pagewidget newLabel
+--------------------------------------------------------------------------------
+
+---------------------Tab Label Utility Functions----------------------------
+
+writeTabLabel :: Notebook -> String -> IO ()
+writeTabLabel notebook newLabel = do
+  pageIndex <- get notebook notebookCurrentPage
+  (Just pagewidget) <- notebookGetNthPage notebook pageIndex
+  newTab <- notebookTabNew (Just newLabel) Nothing
+  notebookSetTabLabel notebook pagewidget (ntBox newTab)

@@ -57,15 +57,18 @@ runFileChooseDialog title acceptStr cancelStr overwriteConf = do
     widgetDestroy fchdal
     return (response, filename)
 
-fileWriteData text path = do
+fileWriteData text = do
+    putStrLn "Read fileWriteData"
     (response, filename)<- runFileChooseDialog "Save" "Save" "Cancel" True
     case response of
-      ResponseCancel -> putStrLn "You cancelled..."
+      ResponseCancel -> return Nothing
       ResponseAccept -> do case filename of
-                              Nothing -> return ()
-                              Just path -> writeFile path text
-      ResponseUser 100 -> putStrLn "You pressed the backup button"
-      ResponseDeleteEvent -> putStrLn "You closed the dialog window..."
+                              Nothing -> return Nothing
+                              Just path -> do
+                                writeFile path text
+                                return (Just path)
+      ResponseUser 100 -> return Nothing
+      ResponseDeleteEvent -> return Nothing
 
 fileReadData :: IO (Maybe String, Maybe String)
 fileReadData = do
@@ -84,12 +87,19 @@ fileReadData = do
                                 return (Nothing, Nothing)
 
 {- Main functions -}
+
 fileOpen textview = do (path, text) <- fileReadData
                        case text of
                             Nothing -> setDataTextView textview ""
                             Just str -> setDataTextView textview str
                        return path
 
-fileSave textview path = do textData <- extractAllDataTextView textview
-                            fileWriteData textData path
-
+fileSave :: String -> Maybe String -> IO (Maybe String)
+fileSave textData path = do
+  case path of
+    (Just "") -> do
+      newPath <- fileWriteData textData
+      return newPath
+    (Just oldPath) -> do
+      writeFile oldPath textData
+      return Nothing
